@@ -8,6 +8,47 @@
     <canvas width="512" height="512"></canvas>
     <script type="module">
         const canvas = document.querySelector('canvas');
+        if (!navigator.gpu) {
+        throw new Error("WebGPU not supported on this browser.");
+        alert('gpu is not enabled on your browser, kindly update to a newer version')
+      }else{
+        alert('gpu enabled')
+      }
+    //   request machine gpu access 
+    const adapter = await navigator.gpu.requestAdapter();
+    if(!adapter){
+        throw new Error('No appropraite GPUAdapter found.');
+    }else{
+        console.log('locked in');
+    }
+// request a device 
+const device = await adapter.requestDevice();
+// configuring the canvas 
+const context = canvas.getContext('webgpu');
+const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+context.configure({
+    device:device,
+    format: canvasFormat
+});
+// provide interface for recording GPU commands.
+const encoder = device.createCommandEncoder();
+// clear the canvas 
+const pass = encoder.beginRenderPass({
+    colorAttachments:[{
+        view: context.getCurrentTexture().createView(),
+        loadOp:"clear",
+        // this line below determines the color of the canvas
+        clearValue: {r:1,g:0.5,b:0,a:1}, 
+        storeOp:"store",
+    }]
+    // remember that the gpu is actually not running anything at this point, youre just storing commands for the GPU to use later 
+
+})
+pass.end();
+const commandBuffer = encoder.finish();
+device.queue.submit([commandBuffer]);
+// finish command buffer and immediately submit it 
+device.queue.submit([encoder.finish()]);
     </script>
 
     <!-- web gpu code starts here -->
